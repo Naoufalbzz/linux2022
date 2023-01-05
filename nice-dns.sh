@@ -3,6 +3,7 @@
 # Ga na of de map voor de DNS-inhoud bestaat. Indien niet, maak ze aan
 if [ "${#}" -eq '0' ]; then
   echo "At least one argument expected, exiting..."
+  exit 0
 fi
 
 sudo chown vagrant /etc
@@ -27,10 +28,24 @@ fi
 sudo systemctl restart dnsmasq
 
 # maak server actief op intnet en localhost maar niet NAT(=eth0) 
-sed -i '$a\interface=eth1' /etc/dnsmasq.conf
-sed -i '/interface=eth0/d' /etc/dnsmasq.conf
+if ! grep -q "interface=eth1" /etc/dnsmasq.conf ; then
+  sed -i '$a\interface=eth1' /etc/dnsmasq.conf
+  sed -i '/interface=eth0/d' /etc/dnsmasq.conf
+fi
 # enable en start dnsmasq
 sudo systemctl enable dnsmasq
 sudo systemctl start dnsmasq
 #poort accesible via alle IP-adressen
 firewall-cmd --permanent --add-port=53/tcp > /dev/null 2>&1
+
+sudo dnf -y install epel-release > /dev/null 2>&1
+sudo dnf -y update > /dev/null 2>&1
+sudo dnf -y install cowsay > /dev/null 2>&1
+
+# Look up the first name in the local authoritative DNS server of DNSmasq
+name=$(nslookup "$1" localhost)
+
+# Format the output with a newline, today's date, and cowsay
+today=$(date +%Y-%m-%d)
+echo -e "\nVandaag is het $today.\n"
+echo "$name" | cowsay
